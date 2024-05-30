@@ -1,0 +1,141 @@
+﻿@model IEnumerable<task4.Models.Message>
+@{
+    var user = ViewBag.User as task4.Models.User;
+}
+
+<h2>Приветствуем, @user.FullName</h2>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+
+
+<h3>Отправить сообщение</h3>
+<form asp-action="SendMessage" method="post">
+    <input type="hidden" name="userId" value="@user.Id" />
+    <div class="form-group">
+        <label for="to">Для</label>
+        <input id="to" name="to" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="title">Тема</label>
+        <input id="title" name="title" class="form-control"/>
+    </div>
+    <div class="form-group">
+        <label for="text">Текст</label>
+        <textarea id="text" name="text" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Отправить</button>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $(".message-link").click(function (e) {
+            e.preventDefault();
+            var messageId = $(this).data("message-id");
+            
+            $.get('@Url.Action("GetMessageText", "Home")', { id: messageId }, function (data) {
+                $("#messageText").text(data);
+                $("#messageModal").modal("show");
+                $.post('@Url.Action("MarkAsRead", "Home")', { id: messageId });
+            });
+        });
+        
+        $(".close, .btn-secondary").click(function () {
+                    $("#messageModal").modal("hide");
+        });
+    });
+</script>
+
+@{
+    string isReadAllSelected = ViewData["isRead"]?.ToString() == "all" ? "selected" : "";
+    string isReadUnreadSelected = ViewData["isRead"]?.ToString() == "unread" ? "selected" : "";
+}
+
+<h3>Ваши сообщения</h3>
+<form method="get" action="@Url.Action("MessageBoard", "Home")">
+    <input type="hidden" name="userId" value="@user.Id" />
+    <div class="form-group">
+        <label for="sender">Отправитель</label>
+        <input type="text" id="sender" name="sender" class="form-control" value="@ViewData["sender"]">
+    </div>
+    <div class="form-group">
+        <label for="fromDate">Дата отправки (от)</label>
+        <input type="date" id="fromDate" name="fromDate" class="form-control" value="@ViewData["fromDate"]">
+    </div>
+    <div class="form-group">
+        <label for="toDate">Дата отправки (до)</label>
+        <input type="date" id="toDate" name="toDate" class="form-control" value="@ViewData["toDate"]">
+    </div>
+    <div class="form-group">
+        <label for="isRead">Статус</label>
+        <select id="isRead" name="isRead" class="form-control">
+            <!option value="all" @isReadAllSelected>Все</!option>
+            <!option value="unread" @isReadUnreadSelected>Непрочитанные</!option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Применить</button>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>От</th>
+            <th>Тема</th>
+            <th>Дата</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var message in Model)
+        {
+            <tr class="@(message.IsRead ? "" : "unread-message")">
+                <td>@message.From</td>
+                <td><a href="#" class="message-link" data-message-id="@message.Id">@message.Title</a></td>
+                <td>@message.SendDate.ToLocalTime()</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="modal fade" id="messageModal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Сообщение</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="messageText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $(".unread-message").css("background-color", "yellow");
+
+            $(".message-link").click(function (e) {
+                e.preventDefault();
+                var messageId = $(this).data("message-id");
+                
+                $.get('@Url.Action("GetMessageText", "Home")', { id: messageId }, function (data) {
+                    $("#messageText").text(data);
+                    $("#messageModal").modal("show");
+                });
+            });
+        });
+    </script>
+}
